@@ -3,13 +3,13 @@ import os
 
 import matplotlib.pyplot as plt
 
-from MockOptimizers import MockOptimizers
+from optimizers import Optimizers
 class ExperimentRunner:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        # self.opts = Optimizers(x, y)
-        self.opts = MockOptimizers();
+        self.opts = Optimizers(x, y)
+        # self.opts = MockOptimizers();
 
     def compare_learning_rates(self, rates_to_test: list):
         print("\n--- Learning Rate Comparison Report ---")
@@ -127,28 +127,3 @@ class ExperimentRunner:
         print("-" * 75)
         return gd_history, newton_history
         pass
-
-if __name__ == "__main__":
-    # Initialize the runner
-    runner = ExperimentRunner(x=None, y=None)
-    
-    # ---------------------------------------------------------
-    # Test 1: Compare Learning Rates
-    # ---------------------------------------------------------
-    rates = [0.001, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.9, 1.0, 2.0, 5.0]
-    runner.compare_learning_rates(rates)
-    
-    # ---------------------------------------------------------
-    # Test 2: Generate Visualizations
-    # ---------------------------------------------------------
-    # Generate ideal runs to plot
-    print("\nGenerating Report Plots...")
-    ideal_gd = runner.opts.gradient_descent(alpha=0.1, a0_init=0.0, a1_init=0.0)
-    ideal_newton = runner.opts.newtons_method(alpha=1.0, a0_init=0.0, a1_init=0.0)
-    runner.generate_report_plots(ideal_gd, ideal_newton)
-    
-    # ---------------------------------------------------------
-    # Test 3: Analyze Stability
-    # ---------------------------------------------------------
-    # Run the bad-initialization test
-    runner.analyze_stability()
