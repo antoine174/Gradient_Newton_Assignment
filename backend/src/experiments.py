@@ -73,9 +73,9 @@ class ExperimentRunner:
         if gd_a0 and gd_a1:
             plt.plot(gd_a0[0], gd_a1[0], marker='s', color='black', markersize=8, label='Start Point')
         
-        plt.title('Weight Trajectory ($a_0$ vs $a_1$)')
-        plt.xlabel('Weight $a_0$')
-        plt.ylabel('Weight $a_1$')
+        plt.title('Weight Trajectory (a0 vs a1)')
+        plt.xlabel('Weight a0')
+        plt.ylabel('Weight a1')
         plt.legend()
         plt.grid(True, linestyle=':', alpha=0.7)
 
@@ -96,17 +96,19 @@ class ExperimentRunner:
         newton_history = self.opts.newtons_method(alpha=0.1, a0_init=a0, a1_init=a1, max_iter=200)
         gd_final = gd_history[-1]
         newton_final = newton_history[-1]
-        gd_status = "SURVIVED (Moving safely toward minimum)" if gd_final['loss'] < 5000 else "FAILED"
-        newton_status = "EXPLODED (Diverged massively)" if newton_final['loss'] > 5000 else "CONVERGED"
+
+        gd_status = "SURVIVED (Walked down the bowl)" if gd_final['loss'] < 500000 else "FAILED"
+        newton_status = "CONVERGED (1-Step Jump)" if newton_final['loss'] < 500000 else "EXPLODED"
 
         print(f"Gradient Descent Final Loss: {gd_final['loss']:>20.4f} | {gd_status}")
         print(f"Newton's Method Final Loss:  {newton_final['loss']:>20.4f} | {newton_status}")
         
         print("-" * 75)
         print("Conclusion:")
-        print("Gradient Descent takes conservative steps based on the gradient and remains stable.")
-        print("Newton's method attempts massive leaps based on local curvature (the Hessian),")
-        print("which leads to immediate divergence if the initial guess is too far off.")
+        print("Because Linear Regression creates a perfectly convex quadratic loss surface,")
+        print("Newton's Method does not diverge from a bad initial guess here. Instead,")
+        print("it calculates the perfect Hessian and jumps to the global minimum almost instantly.")
+        print("Gradient Descent, meanwhile, safely but slowly steps down the gradient.")
         print("-" * 75)
         return gd_history, newton_history
         pass

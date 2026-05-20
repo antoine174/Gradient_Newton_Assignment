@@ -8,6 +8,7 @@ export default function App() {
   const [alpha, setAlpha] = useState(0.1);
   const [a0, setA0] = useState(0);
   const [a1, setA1] = useState(0);
+  const [maxIter, setMaxIter] = useState(1000);
   
   const [data, setData] = useState({ summary: {}, history: [] });
   const [loading, setLoading] = useState(false);
@@ -15,10 +16,26 @@ export default function App() {
   const runOptimization = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/run-optimization', {
-        params: { method, alpha, a0_init: a0, a1_init: a1 }
-      });
-      setData(response.data);
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/run-optimization?method=${method}&alpha=${alpha}&a0_init=${a0}&a1_init=${a1}&max_iter=${maxIter}`
+      );
+      const data = await response.json();
+      
+      // Safety check if history is empty (diverged immediately)
+      const hasHistory = data.history && data.history.length > 0;
+      const finalHistory = hasHistory ? data.history[data.history.length - 1] : { loss: null, a0: 0, a1: 0 };
+      
+      const summary = {
+        status: data.status,
+        total_iterations: hasHistory ? data.history.length : 0,
+        final_loss: finalHistory.loss,
+        final_weights: {
+          a0: finalHistory.a0,
+          a1: finalHistory.a1
+        }
+      };
+
+      setData({ history: data.history || [], summary: summary });
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -30,78 +47,119 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, sans-serif', backgroundColor: '#f4f4f9' }}>
+    <div className="app-container">
       
-      <div style={{ width: '300px', padding: '20px', backgroundColor: '#fff', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ color: '#333' }}>Optimization Control</h2>
+      <div className="sidebar">
+        <div className="sidebar-header">
+          <h2>Optimization</h2>
+          <p>Housing Price Regression</p>
+        </div>
         
-        <div style={{ marginBottom: '20px' }}>
-          <label><strong>Algorithm:</strong></label>
-          <select value={method} onChange={(e) => setMethod(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px' }}>
+        <div className="control-group">
+          <label>Algorithm</label>
+          <select value={method} onChange={(e) => setMethod(e.target.value)} className="styled-select">
             <option value="gd">Gradient Descent</option>
             <option value="newton">Newton's Method</option>
           </select>
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label><strong>Learning Rate ($\alpha$): {alpha}</strong></label>
-          <input type="range" min="0.001" max="1" step="0.01" value={alpha} onChange={(e) => setAlpha(parseFloat(e.target.value))} style={{ width: '100%' }} />
+        <div className="control-group">
+          <label>Learning Rate</label>
+          <input type="number" min="0.0001" step="0.001" value={alpha} onChange={(e) => setAlpha(parseFloat(e.target.value))} className="styled-input" />
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label><strong>Initial $a_0$:</strong></label>
-          <input type="number" value={a0} onChange={(e) => setA0(parseFloat(e.target.value))} style={{ width: '100%', padding: '8px', marginTop: '5px' }} />
+        <div className="control-group">
+          <label>Initial a0 (Intercept)</label>
+          <input type="number" value={a0} onChange={(e) => setA0(parseFloat(e.target.value))} className="styled-input" />
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label><strong>Initial $a_1$:</strong></label>
-          <input type="number" value={a1} onChange={(e) => setA1(parseFloat(e.target.value))} style={{ width: '100%', padding: '8px', marginTop: '5px' }} />
+        <div className="control-group">
+          <label>Initial a1 (Slope)</label>
+          <input type="number" value={a1} onChange={(e) => setA1(parseFloat(e.target.value))} className="styled-input" />
         </div>
 
-        <button 
-          onClick={runOptimization} 
-          style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
+        <div className="control-group">
+          <label>Max Iterations</label>
+          <input type="number" value={maxIter} onChange={(e) => setMaxIter(parseInt(e.target.value))} className="styled-input" />
+        </div>
+
+        <button onClick={runOptimization} disabled={loading} className="btn-primary">
           {loading ? 'Running...' : 'Run Optimization'}
         </button>
 
-        {data.summary.final_loss && (
-          <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#e9ecef', borderRadius: '8px' }}>
-            <h3>Results</h3>
-            <p><strong>Iterations:</strong> {data.summary.total_iterations}</p>
-            <p><strong>Final Loss:</strong> {data.summary.final_loss.toFixed(4)}</p>
-            <p><strong>$a_0$:</strong> {data.summary.final_weights.a0.toFixed(4)}</p>
-            <p><strong>$a_1$:</strong> {data.summary.final_weights.a1.toFixed(4)}</p>
+        {data.summary.status && (
+          <div className="results-card">
+            <h3>Summary</h3>
+            <div className="result-item" style={{ marginBottom: '8px' }}>
+              <span>Status</span>
+              <span style={{ 
+                color: data.summary.status.includes('Optimal') ? '#10b981' : 
+                       data.summary.status.includes('Diverged') ? '#ef4444' : '#f59e0b',
+                fontWeight: 700 
+              }}>
+                {data.summary.status}
+              </span>
+            </div>
+            <div className="result-item">
+              <span>Iterations</span>
+              <span>{data.summary.total_iterations}</span>
+            </div>
+            {data.summary.final_loss !== null && (
+              <>
+                <div className="result-item">
+                  <span>Final Loss (MSE)</span>
+                  <span>{data.summary.final_loss.toFixed(4)}</span>
+                </div>
+                <div className="result-item">
+                  <span>a0 Weight</span>
+                  <span>{data.summary.final_weights.a0.toFixed(4)}</span>
+                </div>
+                <div className="result-item">
+                  <span>a1 Weight</span>
+                  <span>{data.summary.final_weights.a1.toFixed(4)}</span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      <div style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="main-content">
         
-        <div style={{ flex: 1, backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <h3>Loss Curve (Iterations vs SSE)</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <LineChart data={data.history}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.5} />
-              <XAxis dataKey="iter" label={{ value: 'Iterations', position: 'insideBottomRight', offset: -5 }} />
-              <YAxis scale="log" domain={['auto', 'auto']} label={{ value: 'Loss (Log Scale)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="loss" stroke="#ff7300" strokeWidth={3} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3 className="chart-title">Loss Curve</h3>
+            <p className="chart-subtitle">Cost function value over optimization iterations</p>
+          </div>
+          <div style={{ width: '100%', height: '400px', minHeight: '400px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.history}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                <XAxis dataKey="iter" label={{ value: 'Iterations', position: 'insideBottomRight', offset: -5 }} axisLine={false} tickLine={false} />
+                <YAxis scale="log" domain={['auto', 'auto']} label={{ value: 'Log(Loss)', angle: -90, position: 'insideLeft' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Line type="monotone" dataKey="loss" stroke="#6366f1" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }} />
+              </LineChart>
+            </ResponsiveContainer>
+        </div>
         </div>
 
-        <div style={{ flex: 1, backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <h3>Weight Trajectory ($a_0$ vs $a_1$)</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <ScatterChart>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.5} />
-              <XAxis dataKey="a0" type="number" name="Weight a0" label={{ value: 'a0', position: 'insideBottomRight', offset: -5 }} />
-              <YAxis dataKey="a1" type="number" name="Weight a1" label={{ value: 'a1', angle: -90, position: 'insideLeft' }} />
-              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-              <Scatter name="Path" data={data.history} fill="#8884d8" line shape="circle" />
-            </ScatterChart>
-          </ResponsiveContainer>
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3 className="chart-title">Weight Trajectory</h3>
+            <p className="chart-subtitle">Path taken by intercept ($a_0$) and slope ($a_1$)</p>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                <XAxis dataKey="a0" type="number" name="Weight a0" label={{ value: 'a0 (Intercept)', position: 'insideBottomRight', offset: -5 }} axisLine={false} tickLine={false} />
+                <YAxis dataKey="a1" type="number" name="Weight a1" label={{ value: 'a1 (Slope)', angle: -90, position: 'insideLeft' }} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Scatter name="Path" data={data.history} fill="#a855f7" line shape="circle" lineType="joint" />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
       </div>

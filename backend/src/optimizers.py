@@ -27,12 +27,18 @@ class Optimizers:
         a0, a1 = a0_init, a1_init
         history = []
         loss_old = float('inf')
+        status = "Max Iterations Reached (Too Slow)"
 
         for i in range(max_iter):
             loss = self.compute_loss(a0, a1)
-            history.append({'iter': i, 'a0': a0, 'a1': a1, 'loss': loss})
-            
+            if np.isnan(loss) or np.isinf(loss) or loss > 1e150:
+                status = "Diverged (Overshot Minimum)"
+                print(f"Algorithm diverged at iteration {i}. Stopping early.")
+                break
+
+            history.append({'iter': i, 'a0': float(a0), 'a1': float(a1), 'loss': float(loss)})   
             if abs(loss_old - loss) < tol:
+                status = "Optimal (Converged Successfully)"
                 break
                 
             loss_old = loss
@@ -40,19 +46,25 @@ class Optimizers:
             a0 = a0 - alpha * dL_da0
             a1 = a1 - alpha * dL_da1
             
-        return history
+        return {"history": history, "status": status}
 
     def newtons_method(self, alpha, a0_init, a1_init, max_iter=1000, tol=1e-6):
         a = np.array([a0_init, a1_init])
         history = []
         loss_old = float('inf')
+        status = "Max Iterations Reached (Too Slow)"
 
         for i in range(max_iter):
             a0, a1 = a[0], a[1]
             loss = self.compute_loss(a0, a1)
-            history.append({'iter': i, 'a0': a0, 'a1': a1, 'loss': loss})
+            if np.isnan(loss) or np.isinf(loss) or loss > 1e150:
+                status = "Diverged (Overshot Minimum)"
+                print(f"Algorithm diverged at iteration {i}. Stopping early.")
+                break
+            history.append({'iter': i, 'a0': float(a0), 'a1': float(a1), 'loss': float(loss)})
             
             if abs(loss_old - loss) < tol:
+                status = "Optimal (Converged Successfully)"
                 break
                 
             loss_old = loss
@@ -65,4 +77,4 @@ class Optimizers:
                 
             a = a - alpha * np.dot(H_inv, J)
             
-        return history
+        return {"history": history, "status": status}
