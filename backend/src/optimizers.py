@@ -6,30 +6,63 @@ class Optimizers:
         self.y = y
 
     def compute_loss(self, a0, a1):
-        # TODO (Abd elrahman): Implement the SSE Loss function.
-        # L = 0.5 * sum( (y_true - (a0 + a1*x))^2 )
-        pass
+        return 0.5 * np.sum((self.y - (a0 + a1 * self.x)) ** 2)
 
     def compute_gradients(self, a0, a1):
-        # TODO (Abd elrahman): Calculate partial derivative with respect to a0.
-        # TODO (Abd elrahman): Calculate partial derivative with respect to a1.
-        # Return dL/da0, dL/da1
-        pass
+        errors = self.y - (a0 + a1 * self.x)
+        dL_da0 = -np.sum(errors)
+        dL_da1 = -np.sum(errors * self.x)
+        return dL_da0, dL_da1
 
     def compute_hessian(self, a0, a1):
-        # TODO (Abd elrahman): Calculate the second derivatives to form the 2x2 Hessian matrix.
-        # TODO (Abd elrahman): Calculate the Jacobian matrix (the gradients).
-        # Return H, J
-        pass
+        H = np.array([
+            [len(self.x), np.sum(self.x)],
+            [np.sum(self.x), np.sum(self.x ** 2)]
+        ])
+        dL_da0, dL_da1 = self.compute_gradients(a0, a1)
+        J = np.array([dL_da0, dL_da1])
+        return H, J
 
     def gradient_descent(self, alpha, a0_init, a1_init, max_iter=1000, tol=1e-6):
-        # TODO (Abd elrahman): Implement the GD loop: a_i(k+1) = a_i(k) - alpha * dL/da_i(k)
-        # TODO (Abd elrahman): Stop if abs(loss_new - loss_old) < tol or max_iter is reached.
-        # MUST RETURN: A list of dictionaries tracking history: [{'iter': i, 'a0': val, 'a1': val, 'loss': val}, ...]
-        pass
+        a0, a1 = a0_init, a1_init
+        history = []
+        loss_old = float('inf')
+
+        for i in range(max_iter):
+            loss = self.compute_loss(a0, a1)
+            history.append({'iter': i, 'a0': a0, 'a1': a1, 'loss': loss})
+            
+            if abs(loss_old - loss) < tol:
+                break
+                
+            loss_old = loss
+            dL_da0, dL_da1 = self.compute_gradients(a0, a1)
+            a0 = a0 - alpha * dL_da0
+            a1 = a1 - alpha * dL_da1
+            
+        return history
 
     def newtons_method(self, alpha, a0_init, a1_init, max_iter=1000, tol=1e-6):
-        # TODO (Abd elrahman): Implement the Damped Newton Method loop: X = a - alpha * inv(H) * J
-        # TODO (Abd elrahman): Handle matrix inversion using np.linalg.inv.
-        # MUST RETURN: The exact same history format as gradient_descent.
-        pass
+        a = np.array([a0_init, a1_init])
+        history = []
+        loss_old = float('inf')
+
+        for i in range(max_iter):
+            a0, a1 = a[0], a[1]
+            loss = self.compute_loss(a0, a1)
+            history.append({'iter': i, 'a0': a0, 'a1': a1, 'loss': loss})
+            
+            if abs(loss_old - loss) < tol:
+                break
+                
+            loss_old = loss
+            H, J = self.compute_hessian(a0, a1)
+            
+            try:
+                H_inv = np.linalg.inv(H)
+            except np.linalg.LinAlgError:
+                break # Stop if Hessian is singular
+                
+            a = a - alpha * np.dot(H_inv, J)
+            
+        return history
