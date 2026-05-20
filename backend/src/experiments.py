@@ -37,13 +37,9 @@ class ExperimentRunner:
         pass
 
     def generate_report_plots(self, gd_history, newton_history):
-        """
-        Generates and saves comparison plots for Gradient Descent and Newton's Method.
-        """
-        # 1. Ensure the output directory exists so plt.savefig doesn't crash
+
         os.makedirs("reports/figures", exist_ok=True)
 
-        # 2. Extract data for plotting from the dictionary lists
         gd_iters = [step['iter'] for step in gd_history]
         gd_loss = [step['loss'] for step in gd_history]
         gd_a0 = [step['a0'] for step in gd_history]
@@ -54,9 +50,6 @@ class ExperimentRunner:
         newton_a0 = [step['a0'] for step in newton_history]
         newton_a1 = [step['a1'] for step in newton_history]
 
-        # ---------------------------------------------------------
-        # Plot 1: Loss Curve (Iterations vs Loss)
-        # ---------------------------------------------------------
         plt.figure(figsize=(10, 6))
         plt.plot(gd_iters, gd_loss, label='Gradient Descent', color='blue', linewidth=2)
         plt.plot(newton_iters, newton_loss, label="Newton's Method", color='red', linewidth=2, linestyle='--')
@@ -64,25 +57,19 @@ class ExperimentRunner:
         plt.title('Loss Curve Comparison: GD vs Newton')
         plt.xlabel('Iterations')
         plt.ylabel('Loss (SSE)')
-        plt.yscale('log') # Log scale is highly recommended for loss drops!
+        plt.yscale('log') 
         plt.legend()
         plt.grid(True, linestyle=':', alpha=0.7)
         
-        # Save and close the figure to free up memory
         plt.savefig("reports/figures/loss_curve.png", dpi=300, bbox_inches='tight')
         plt.close()
         print("Successfully saved: reports/figures/loss_curve.png")
 
-        # ---------------------------------------------------------
-        # Plot 2: Weight Trajectory (a0 vs a1)
-        # ---------------------------------------------------------
         plt.figure(figsize=(10, 6))
         
-        # Plot the paths
         plt.plot(gd_a0, gd_a1, label='Gradient Descent', color='blue', marker='o', markersize=4, alpha=0.6)
         plt.plot(newton_a0, newton_a1, label="Newton's Method", color='red', marker='x', markersize=6)
         
-        # Highlight the starting coordinate so the path direction is obvious
         if gd_a0 and gd_a1:
             plt.plot(gd_a0[0], gd_a1[0], marker='s', color='black', markersize=8, label='Start Point')
         
@@ -92,17 +79,13 @@ class ExperimentRunner:
         plt.legend()
         plt.grid(True, linestyle=':', alpha=0.7)
 
-        # Save and close
         plt.savefig("reports/figures/weight_path.png", dpi=300, bbox_inches='tight')
         plt.close()
         print("Successfully saved: reports/figures/weight_path.png")
         pass
 
     def analyze_stability(self):
-        """
-        Tests the robustness of GD vs Newton's method by initializing weights
-        extremely far from the true minimum.
-        """
+
         print("\n--- Stability Analysis Report ---")
         print("Test: Extreme Initial Guess (a0 = 10000.0, a1 = 10000.0)")
         print("-" * 75)
