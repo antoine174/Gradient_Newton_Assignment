@@ -6,18 +6,28 @@ class Optimizers:
         self.y = y
 
     def compute_loss(self, a0, a1):
-        return 0.5 * np.sum((self.y - (a0 + a1 * self.x)) ** 2)
+        loss = 0.0
+        for xi, yi in zip(self.x, self.y):
+            loss += (yi - (a0 + a1 * xi)) ** 2
+        return 0.5 * loss
 
     def compute_gradients(self, a0, a1):
-        errors = self.y - (a0 + a1 * self.x)
-        dL_da0 = -np.sum(errors)
-        dL_da1 = -np.sum(errors * self.x)
+        dL_da0 = 0.0
+        dL_da1 = 0.0
+        for xi, yi in zip(self.x, self.y):
+            error = yi - (a0 + a1 * xi)
+            dL_da0 -= error
+            dL_da1 -= error * xi
         return dL_da0, dL_da1
 
     def compute_hessian(self, a0, a1):
+        n = len(self.x)
+        sum_x = sum(self.x)
+        sum_x_sq = sum(xi ** 2 for xi in self.x)
+        
         H = np.array([
-            [len(self.x), np.sum(self.x)],
-            [np.sum(self.x), np.sum(self.x ** 2)]
+            [n, sum_x],
+            [sum_x, sum_x_sq]
         ])
         dL_da0, dL_da1 = self.compute_gradients(a0, a1)
         J = np.array([dL_da0, dL_da1])
