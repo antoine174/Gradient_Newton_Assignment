@@ -146,7 +146,7 @@ export default function App() {
 
         <div className="chart-card">
           <div className="chart-header">
-            <h3 className="chart-title">Weight Trajectory</h3>
+            <h3 className="chart-title">weight values (a0 vs a1)</h3>
             <p className="chart-subtitle">Path taken by intercept ($a_0$) and slope ($a_1$)</p>
           </div>
           <div className="chart-wrapper">
