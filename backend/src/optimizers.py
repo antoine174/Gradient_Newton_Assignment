@@ -1,4 +1,4 @@
-import numpy as np
+import math
 
 class Optimizers:
     def __init__(self, x, y):
@@ -6,21 +6,31 @@ class Optimizers:
         self.y = y
 
     def compute_loss(self, a0, a1):
-        return 0.5 * np.sum((self.y - (a0 + a1 * self.x)) ** 2)
+        loss = 0.0
+        for xi, yi in zip(self.x, self.y):
+            loss += (yi - (a0 + a1 * xi)) ** 2
+        return 0.5 * loss
 
     def compute_gradients(self, a0, a1):
-        errors = self.y - (a0 + a1 * self.x)
-        dL_da0 = -np.sum(errors)
-        dL_da1 = -np.sum(errors * self.x)
+        dL_da0 = 0.0
+        dL_da1 = 0.0
+        for xi, yi in zip(self.x, self.y):
+            error = yi - (a0 + a1 * xi)
+            dL_da0 -= error
+            dL_da1 -= error * xi
         return dL_da0, dL_da1
 
     def compute_hessian(self, a0, a1):
-        H = np.array([
-            [len(self.x), np.sum(self.x)],
-            [np.sum(self.x), np.sum(self.x ** 2)]
-        ])
+        n = len(self.x)
+        sum_x = sum(self.x)
+        sum_x_sq = sum(xi ** 2 for xi in self.x)
+        
+        H = [
+            [n, sum_x],
+            [sum_x, sum_x_sq]
+        ]
         dL_da0, dL_da1 = self.compute_gradients(a0, a1)
-        J = np.array([dL_da0, dL_da1])
+        J = [dL_da0, dL_da1]
         return H, J
 
     def gradient_descent(self, alpha, a0_init, a1_init, max_iter=1000, tol=1e-6):
@@ -31,7 +41,7 @@ class Optimizers:
 
         for i in range(max_iter):
             loss = self.compute_loss(a0, a1)
-            if np.isnan(loss) or np.isinf(loss) or loss > 1e150:
+            if math.isnan(loss) or math.isinf(loss) or loss > 1e150:
                 status = "Diverged (Overshot Minimum)"
                 print(f"Algorithm diverged at iteration {i}. Stopping early.")
                 break
@@ -49,15 +59,14 @@ class Optimizers:
         return {"history": history, "status": status}
 
     def newtons_method(self, alpha, a0_init, a1_init, max_iter=1000, tol=1e-6):
-        a = np.array([a0_init, a1_init])
+        a0, a1 = a0_init, a1_init
         history = []
         loss_old = float('inf')
         status = "Max Iterations Reached (Too Slow)"
 
         for i in range(max_iter):
-            a0, a1 = a[0], a[1]
             loss = self.compute_loss(a0, a1)
-            if np.isnan(loss) or np.isinf(loss) or loss > 1e150:
+            if math.isnan(loss) or math.isinf(loss) or loss > 1e150:
                 status = "Diverged (Overshot Minimum)"
                 print(f"Algorithm diverged at iteration {i}. Stopping early.")
                 break
@@ -70,11 +79,19 @@ class Optimizers:
             loss_old = loss
             H, J = self.compute_hessian(a0, a1)
             
-            try:
-                H_inv = np.linalg.inv(H)
-            except np.linalg.LinAlgError:
+            det = H[0][0] * H[1][1] - H[0][1] * H[1][0]
+            if det == 0:
                 break # Stop if Hessian is singular
                 
-            a = a - alpha * np.dot(H_inv, J)
+            H_inv_00 = H[1][1] / det
+            H_inv_01 = -H[0][1] / det
+            H_inv_10 = -H[1][0] / det
+            H_inv_11 = H[0][0] / det
+            
+            step_0 = H_inv_00 * J[0] + H_inv_01 * J[1]
+            step_1 = H_inv_10 * J[0] + H_inv_11 * J[1]
+            
+            a0 = a0 - alpha * step_0
+            a1 = a1 - alpha * step_1
             
         return {"history": history, "status": status}
