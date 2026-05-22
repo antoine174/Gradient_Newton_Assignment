@@ -1,1 +1,0 @@
-verged (Overshot minimum)"
